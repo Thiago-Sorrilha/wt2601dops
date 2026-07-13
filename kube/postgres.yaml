@@ -72,3 +72,42 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
+---
+#Redis
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  containers:
+    - name: redis
+      image: docker.io/library/redis:7-alpine
+      command: ["redis-server", "--save", "60", "1"]
+      ports:
+        - containerPort: 6379
+          hostPort: 0
+      volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      readinessProbe:
+        exec:
+          command: ["redis-cli", "ping"]
+        initialDelaySeconds: 3
+        periodSeconds: 5
+  volumes:
+    - name: redis-data
+      persistentVolumeClaim:
+        claimName: redis-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi

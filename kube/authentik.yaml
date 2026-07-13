@@ -45,7 +45,9 @@ spec:
             name: authentik-env
       ports:
         - containerPort: 9000
+          hostPort: 9000
         - containerPort: 9443
+          hostPort: 9443
       volumeMounts:
         - name: authentik-media
           mountPath: /media
