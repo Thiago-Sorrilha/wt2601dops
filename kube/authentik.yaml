@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-env
+data:
+  AUTHENTIK_SECRET_KEY: "rmO+gGvVXDp19iznVLQk5F71IDX51J63/DAstltODBAJgTMfymK6F4kuxl21/In7"
+  AUTHENTIK_POSTGRESQL__HOST: "postgres"
+  AUTHENTIK_POSTGRESQL__NAME: "authentik"
+  AUTHENTIK_POSTGRESQL__USER: "authentik"
+  AUTHENTIK_POSTGRESQL__PASSWORD: "authentik"
+  AUTHENTIK_REDIS__HOST: "redis"
+  AUTHENTIK_BOOTSTRAP_EMAIL: "akadmin@wavecom.local"
+  AUTHENTIK_BOOTSTRAP_PASSWORD: "ChangeMe123!"
+  AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: authentik
+  labels:
+    app: authentik
+spec:
+  initContainers:
+    - name: wait-for-postgres
+      image: docker.io/library/postgres:16-alpine
+      command:
+        - sh
+        - -c
+        - "until pg_isready -h postgres -U authentik; do echo waiting for postgres; sleep 2; done"
+      env:
+        - name: PGPASSWORD
+          value: authentik
+    - name: wait-for-redis
+      image: docker.io/library/redis:7-alpine
+      command:
+        - sh
+        - -c
+        - "until redis-cli -h redis ping; do echo waiting for redis; sleep 2; done"
+  containers:
+    - name: server
+      image: ghcr.io/goauthentik/server:2026.5.4
+      args: ["server"]
+      envFrom:
+        - configMapRef:
+            name: authentik-env
+      ports:
+        - containerPort: 9000
+        - containerPort: 9443
+      volumeMounts:
+        - name: authentik-media
+          mountPath: /media
+      readinessProbe:
+        httpGet:
+          path: /-/health/ready/
+          port: 9000
+        initialDelaySeconds: 20
+        periodSeconds: 10
+    - name: worker
+      image: ghcr.io/goauthentik/server:2026.5.4
+      args: ["worker"]
+      envFrom:
+        - configMapRef:
+            name: authentik-env
+      volumeMounts:
+        - name: authentik-media
+          mountPath: /media
+  volumes:
+    - name: authentik-media
+      persistentVolumeClaim:
+        claimName: authentik-media
+    - name: authentik-templates
+      emptyDir: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: authentik-media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentik
+spec:
+  selector:
+    app: authentik
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000

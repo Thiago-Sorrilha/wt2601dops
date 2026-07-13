@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  init.sh: |
+    #!/bin/bash
+    set -e
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+      CREATE USER authentik WITH PASSWORD 'authentik';
+      CREATE DATABASE authentik OWNER authentik;
+      CREATE USER keycloak WITH PASSWORD 'keycloak';
+      CREATE DATABASE keycloak OWNER keycloak;
+    EOSQL
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  containers:
+    - name: postgres
+      image: docker.io/library/postgres:16-alpine
+      env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+      ports:
+        - containerPort: 5432
+      volumeMounts:
+        - name: pg-data
+          mountPath: /var/lib/postgresql/data
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
+      readinessProbe:
+        exec:
+          command: ["pg_isready", "-U", "postgres"]
+        initialDelaySeconds: 5
+        periodSeconds: 5
+  volumes:
+    - name: pg-data
+      persistentVolumeClaim:
+        claimName: postgres-data
+    - name: init-scripts
+      configMap:
+        name: postgres-init
+        defaultMode: 0755
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
