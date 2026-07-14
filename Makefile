@@ -1,19 +1,31 @@
-.PHONY: start stop clean
+.PHONY: start stop restart clean status
+
+KUBE_DIR=kube
+FILES=$(KUBE_DIR)/postgres.yaml $(KUBE_DIR)/authentik.yaml $(KUBE_DIR)/keycloak.yaml $(KUBE_DIR)/whoami.yaml $(KUBE_DIR)/traefik.yaml
 
 start:
-	@echo "Iniciar a infraestrutura..."
-	# Criando os recursos do banco primeiro
-	podman kube play kube/postgres.yaml
-	podman kube play kube/authentik.yaml
-	podman kube play kube/traefik.yaml
-	podman kube play kube/postgres.yaml
-	@echo "Aguardando manifestos serem aplicados..."
+	@echo "A iniciar a infraestrutura com Podman..."
+	@for file in $(FILES); do \
+		echo "A aplicar $$file..."; \
+		podman kube play $$file; \
+	done
+	@echo "Tudo inicializado com sucesso!"
 
 stop:
-	@echo "Parar a infraestrutura..."
-	podman kube down kube/postgres.yaml || true
+	@echo "A parar a infraestrutura..."
+	@for file in $(FILES); do \
+		echo "A remover $$file..."; \
+		podman kube down $$file || true; \
+	done
+	@echo "Infraestrutura parada."
 
 clean: stop
-	@echo "Limpar volumes e resquícios..."
-	# Remove os volumes criados pelo podman kube play
-	podman volume rm postgres-pvc || true
+	@echo "A limpar volumes e caches do Podman..."
+	podman volume prune -f
+	@echo "Ambiente limpo."
+
+restart: stop start
+
+status:
+	podman pod ps
+	podman ps

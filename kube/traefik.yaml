@@ -6,6 +6,7 @@ data:
   traefik.yml: |
     api:
       dashboard: true
+      insecure: true
 
     entryPoints:
       web:
@@ -21,6 +22,13 @@ data:
   dynamic.yml: |
     http:
       routers:
+        # CORREÇÃO: Adicionada a rota protegida para o Whoami
+        whoami:
+          rule: "Host(`whoami.localhost`)"
+          service: whoami
+          middlewares:
+            - authentik-auth
+
         authentik:
           rule: "Host(`authentik.localhost`)"
           service: authentik
@@ -30,6 +38,10 @@ data:
           service: keycloak
 
       services:
+        whoami:
+          loadBalancer:
+            servers:
+              - url: http://whoami:80
         authentik:
           loadBalancer:
             servers:
@@ -38,6 +50,20 @@ data:
           loadBalancer:
             servers:
               - url: http://keycloak:8080
+
+      # CORREÇÃO: Middleware ForwardAuth que intercepta a requisição e valida no Authentik
+      middlewares:
+        authentik-auth:
+          forwardAuth:
+            address: "http://authentik:9000/outpost.goauthentik.io/auth/traefik"
+            trustForwardHeader: true
+            authResponseHeaders:
+              - "X-authentik-username"
+              - "X-authentik-groups"
+              - "X-authentik-email"
+              - "X-authentik-name"
+              - "X-authentik-uid"
+              - "Authorization"
 ---
 apiVersion: v1
 kind: Pod
@@ -51,11 +77,27 @@ spec:
       image: docker.io/library/traefik:v3.3
       ports:
         - containerPort: 80
-          hostPort: 8080
+          hostPort: 8080 # Acessível em http://localhost:8080 no seu navegador
       volumeMounts:
+        # CORREÇÃO: Usando subPath para que os arquivos coexistam sem sobrescrever o diretório inteiro
         - name: config
-          mountPath: /etc/traefik
+          mountPath: /etc/traefik/traefik.yml
+          subPath: traefik.yml
+        - name: config
+          mountPath: /etc/traefik/dynamic.yml
+          subPath: dynamic.yml
   volumes:
     - name: config
       configMap:
         name: traefik-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+spec:
+  selector:
+    app: traefik
+  ports:
+    - port: 80
+      targetPort: 80

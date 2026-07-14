@@ -73,7 +73,7 @@ spec:
     - port: 5432
       targetPort: 5432
 ---
-#Redis
+# Redis Pod
 apiVersion: v1
 kind: Pod
 metadata:
@@ -87,7 +87,6 @@ spec:
       command: ["redis-server", "--save", "60", "1"]
       ports:
         - containerPort: 6379
-          hostPort: 0
       volumeMounts:
         - name: redis-data
           mountPath: /data
@@ -111,3 +110,15 @@ spec:
   resources:
     requests:
       storage: 256Mi
+---
+# CORREÇÃO: Adicionado o Service do Redis para o Authentik conseguir resolver o DNS interno 'redis'
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+      targetPort: 6379
