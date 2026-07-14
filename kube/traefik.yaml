@@ -22,8 +22,7 @@ data:
   dynamic.yml: |
     http:
       routers:
-        # CORREÇÃO: Adicionada a rota protegida para o Whoami
-        whoami:
+         whoami:
           rule: "Host(`whoami.localhost`)"
           service: whoami
           middlewares:
@@ -51,7 +50,7 @@ data:
             servers:
               - url: http://keycloak:8080
 
-      # CORREÇÃO: Middleware ForwardAuth que intercepta a requisição e valida no Authentik
+      
       middlewares:
         authentik-auth:
           forwardAuth:
@@ -77,9 +76,8 @@ spec:
       image: docker.io/library/traefik:v3.3
       ports:
         - containerPort: 80
-          hostPort: 8080 # Acessível em http://localhost:8080 no seu navegador
+          hostPort: 8080 #
       volumeMounts:
-        # CORREÇÃO: Usando subPath para que os arquivos coexistam sem sobrescrever o diretório inteiro
         - name: config
           mountPath: /etc/traefik/traefik.yml
           subPath: traefik.yml
