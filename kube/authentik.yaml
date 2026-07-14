@@ -13,6 +13,7 @@ data:
   AUTHENTIK_BOOTSTRAP_PASSWORD: "ChangeMe123!"
   AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
   AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+  AUTHENTIK_LISTEN__HTTP: "0.0.0.0:9005"
 ---
 apiVersion: v1
 kind: Pod
@@ -45,7 +46,7 @@ spec:
         - configMapRef:
             name: authentik-env
       ports:
-        - containerPort: 9000
+        - containerPort: 9005
           hostPort: 9000
         - containerPort: 9443
           hostPort: 9443
@@ -57,7 +58,7 @@ spec:
       readinessProbe:
         httpGet:
           path: /-/health/ready/
-          port: 9000
+          port: 9005
         initialDelaySeconds: 20
         periodSeconds: 10
     - name: worker
@@ -99,4 +100,4 @@ spec:
   ports:
     - name: http
       port: 9000
-      targetPort: 9000
+      targetPort: 9005

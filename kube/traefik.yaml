@@ -45,7 +45,7 @@ data:
         authentik:
           loadBalancer:
             servers:
-              - url: http://authentik:9000
+              - url: http://authentik:9005
         keycloak:
           loadBalancer:
             servers:
@@ -55,7 +55,7 @@ data:
       middlewares:
         authentik-auth:
           forwardAuth:
-            address: "http://authentik:9000/outpost.goauthentik.io/auth/traefik"
+            address: "http://authentik:9005/outpost.goauthentik.io/auth/traefik"
             trustForwardHeader: true
             authResponseHeaders:
               - "X-authentik-username"
