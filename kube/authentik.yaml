@@ -12,6 +12,7 @@ data:
   AUTHENTIK_BOOTSTRAP_EMAIL: "akadmin@wavecom.local"
   AUTHENTIK_BOOTSTRAP_PASSWORD: "ChangeMe123!"
   AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+  AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
 ---
 apiVersion: v1
 kind: Pod
@@ -51,6 +52,8 @@ spec:
       volumeMounts:
         - name: authentik-media
           mountPath: /media
+        - name: authentik-templates
+          mountPath: /templates
       readinessProbe:
         httpGet:
           path: /-/health/ready/
@@ -66,6 +69,8 @@ spec:
       volumeMounts:
         - name: authentik-media
           mountPath: /media
+        - name: authentik-templates
+          mountPath: /templates
   volumes:
     - name: authentik-media
       persistentVolumeClaim:
