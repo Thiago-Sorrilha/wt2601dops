@@ -111,7 +111,6 @@ spec:
     requests:
       storage: 256Mi
 ---
-# CORREÇÃO: Adicionado o Service do Redis para o Authentik conseguir resolver o DNS interno 'redis'
 apiVersion: v1
 kind: Service
 metadata:
